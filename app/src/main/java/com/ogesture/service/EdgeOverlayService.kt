@@ -559,7 +559,7 @@ class EdgeOverlayService : LifecycleService() {
         private const val CHANNEL_ID = "edge_gesture"
         private const val NOTIFICATION_ID = 1001
         private const val SIDE_MIN_DISTANCE_DP = 24f
-        private const val BOTTOM_MIN_DISTANCE_DP = 10f
+        private const val BOTTOM_MIN_DISTANCE_DP = 26f
         private const val MAX_REPLAY_MS = 3_000L
 
         // Grace for hiding an indicator window that covers the replay's tap point (side
