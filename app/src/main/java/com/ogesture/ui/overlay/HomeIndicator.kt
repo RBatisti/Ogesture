@@ -37,6 +37,7 @@ class HomeIndicator(
     }
     private var attached = false
     private var windowHidden = false
+    private var userHidden = false
 
     init {
         root.clipChildren = false
@@ -50,9 +51,9 @@ class HomeIndicator(
             (barHeightPx + revealPx).toInt(),
             WindowManager.LayoutParams.TYPE_APPLICATION_OVERLAY,
             WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE or
-                WindowManager.LayoutParams.FLAG_NOT_TOUCHABLE or
-                WindowManager.LayoutParams.FLAG_NOT_TOUCH_MODAL or
-                WindowManager.LayoutParams.FLAG_LAYOUT_NO_LIMITS,
+                    WindowManager.LayoutParams.FLAG_NOT_TOUCHABLE or
+                    WindowManager.LayoutParams.FLAG_NOT_TOUCH_MODAL or
+                    WindowManager.LayoutParams.FLAG_LAYOUT_NO_LIMITS,
             PixelFormat.TRANSLUCENT,
         ).apply {
             gravity = Gravity.BOTTOM or Gravity.CENTER_HORIZONTAL
@@ -63,6 +64,7 @@ class HomeIndicator(
         try {
             windowManager.addView(root, params)
             attached = true
+            applyAlpha()
         } catch (_: Throwable) {
             // Indicator is cosmetic; the gesture keeps working without it.
         }
@@ -78,10 +80,19 @@ class HomeIndicator(
     }
 
     override fun setWindowHidden(hidden: Boolean) {
-        if (!attached) return
         windowHidden = hidden
+        applyAlpha()
+    }
+
+    override fun setUserHidden(hidden: Boolean) {
+        userHidden = hidden
+        applyAlpha()
+    }
+
+    private fun applyAlpha() {
+        if (!attached) return
         val lp = root.layoutParams as? WindowManager.LayoutParams ?: return
-        val newAlpha = if (hidden) 0f else 1f
+        val newAlpha = if (windowHidden || userHidden) 0f else 1f
         if (lp.alpha == newAlpha) return
         lp.alpha = newAlpha
         try {
@@ -91,7 +102,7 @@ class HomeIndicator(
     }
 
     override fun windowBounds(): Rect? {
-        if (!attached || windowHidden) return null
+        if (!attached || windowHidden || userHidden) return null
         val loc = IntArray(2)
         root.getLocationOnScreen(loc)
         return Rect(loc[0], loc[1], loc[0] + root.width, loc[1] + root.height)

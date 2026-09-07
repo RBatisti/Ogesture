@@ -35,9 +35,16 @@ class SettingsRepository private constructor(appContext: Context) {
         }
     }
 
+    val hideHomeIndicator: Flow<Boolean> = store.data.map { it[KEY_HIDE_HOME_INDICATOR] ?: false }
+
+    suspend fun setHideHomeIndicator(hidden: Boolean) {
+        store.edit { it[KEY_HIDE_HOME_INDICATOR] = hidden }
+    }
+
     companion object {
         private val KEY_MASTER = booleanPreferencesKey("master_enabled")
         private val KEY_EXCLUDED_APPS = stringSetPreferencesKey("excluded_apps")
+        private val KEY_HIDE_HOME_INDICATOR = booleanPreferencesKey("hide_home_indicator")
 
         @Volatile private var INSTANCE: SettingsRepository? = null
 

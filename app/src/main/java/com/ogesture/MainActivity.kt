@@ -36,6 +36,7 @@ import androidx.compose.material.icons.filled.Favorite
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.LargeTopAppBar
 import androidx.compose.material3.MaterialTheme
@@ -112,6 +113,7 @@ class MainActivity : ComponentActivity() {
 private fun MainScreen(onOpenCompat: () -> Unit, viewModel: MainViewModel = viewModel()) {
     val context = LocalContext.current
     val masterEnabled by viewModel.masterEnabled.collectAsState()
+    val hideHomeIndicator by viewModel.hideHomeIndicator.collectAsState()
 
     var overlayGranted by remember { mutableStateOf(Settings.canDrawOverlays(context)) }
     var accessibilityStatus by remember { mutableStateOf(computeAccessibilityStatus(context)) }
@@ -228,7 +230,10 @@ private fun MainScreen(onOpenCompat: () -> Unit, viewModel: MainViewModel = view
             )
 
             SectionHeader(stringResource(R.string.gestures_title))
-            GesturesCard()
+            GesturesCard(
+                hideHomeIndicator = hideHomeIndicator,
+                onHideHomeIndicatorChange = { viewModel.setHideHomeIndicator(it) },
+            )
 
             SectionHeader(stringResource(R.string.compat_title))
             CompatEntryCard(onClick = onOpenCompat)
@@ -316,7 +321,10 @@ private fun MasterSwitchCard(
 }
 
 @Composable
-private fun GesturesCard() {
+private fun GesturesCard(
+    hideHomeIndicator: Boolean,
+    onHideHomeIndicatorChange: (Boolean) -> Unit,
+) {
     Card(
         shape = MaterialTheme.shapes.extraLarge,
         colors = CardDefaults.cardColors(
@@ -372,6 +380,33 @@ private fun GesturesCard() {
                             color = MaterialTheme.colorScheme.onSecondaryContainer,
                             shape = RoundedCornerShape(2.dp),
                         ),
+                )
+            }
+            HorizontalDivider(
+                modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp),
+                color = MaterialTheme.colorScheme.outlineVariant,
+            )
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 16.dp, vertical = 10.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(16.dp),
+            ) {
+                Column(modifier = Modifier.weight(1f)) {
+                    Text(
+                        text = stringResource(R.string.hide_home_indicator_title),
+                        style = MaterialTheme.typography.titleSmall,
+                    )
+                    Text(
+                        text = stringResource(R.string.hide_home_indicator_subtitle),
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                }
+                Switch(
+                    checked = hideHomeIndicator,
+                    onCheckedChange = onHideHomeIndicatorChange,
                 )
             }
         }

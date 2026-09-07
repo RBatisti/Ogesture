@@ -59,6 +59,12 @@ class EdgeOverlayService : LifecycleService() {
     @Volatile
     private var passThrough = false
 
+    // User preference: keep the Home gesture zone fully working, just never draw its
+    // handle. Applied to the BOTTOM indicator both on (re)build and live via the
+    // collector below, so toggling the setting takes effect without a service restart.
+    @Volatile
+    private var hideHomeIndicatorPref = false
+
     // True while a finger holds a zone. The zone windows go untouchable + alpha 0 the
     // moment a stream starts: window-state changes only affect the targeting of NEW
     // touches (the held stream stays with the window that received ACTION_DOWN), and
@@ -126,6 +132,13 @@ class EdgeOverlayService : LifecycleService() {
                     passThrough = excluded
                     applyZoneInteractivity()
                 }
+        }
+
+        lifecycleScope.launch {
+            repo.hideHomeIndicator.distinctUntilChanged().collect { hidden ->
+                hideHomeIndicatorPref = hidden
+                indicators[ZoneId.BOTTOM]?.setUserHidden(hidden)
+            }
         }
     }
 
@@ -238,6 +251,7 @@ class EdgeOverlayService : LifecycleService() {
                         context = this,
                         windowManager = windowManager,
                     )
+                    ind.setUserHidden(hideHomeIndicatorPref)
                     indicator = ind
                     // The bar is static; it only lifts slightly while a bottom gesture is
                     // in progress, then settles back flush with the edge.
@@ -380,7 +394,7 @@ class EdgeOverlayService : LifecycleService() {
         Log.d(
             TAG,
             "Replaying unused touch: ${samples.size} samples over ${duration}ms" +
-                if (underIndicator) " (under indicator, +${injectDelay}ms)" else "",
+                    if (underIndicator) " (under indicator, +${injectDelay}ms)" else "",
         )
         replaying = true
         hideIndicatorsForReplay = underIndicator
@@ -505,8 +519,8 @@ class EdgeOverlayService : LifecycleService() {
             heightPx,
             WindowManager.LayoutParams.TYPE_APPLICATION_OVERLAY,
             WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE or
-                WindowManager.LayoutParams.FLAG_NOT_TOUCH_MODAL or
-                WindowManager.LayoutParams.FLAG_LAYOUT_NO_LIMITS,
+                    WindowManager.LayoutParams.FLAG_NOT_TOUCH_MODAL or
+                    WindowManager.LayoutParams.FLAG_LAYOUT_NO_LIMITS,
             PixelFormat.TRANSLUCENT,
         ).apply {
             this.gravity = gravity

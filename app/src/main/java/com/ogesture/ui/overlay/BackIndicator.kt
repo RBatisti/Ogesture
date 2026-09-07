@@ -60,9 +60,9 @@ class BackIndicator(
             WindowManager.LayoutParams.MATCH_PARENT,
             WindowManager.LayoutParams.TYPE_APPLICATION_OVERLAY,
             WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE or
-                WindowManager.LayoutParams.FLAG_NOT_TOUCHABLE or
-                WindowManager.LayoutParams.FLAG_NOT_TOUCH_MODAL or
-                WindowManager.LayoutParams.FLAG_LAYOUT_NO_LIMITS,
+                    WindowManager.LayoutParams.FLAG_NOT_TOUCHABLE or
+                    WindowManager.LayoutParams.FLAG_NOT_TOUCH_MODAL or
+                    WindowManager.LayoutParams.FLAG_LAYOUT_NO_LIMITS,
             PixelFormat.TRANSLUCENT,
         ).apply {
             gravity = (if (fromLeftEdge) Gravity.START else Gravity.END) or Gravity.TOP
@@ -108,6 +108,8 @@ class BackIndicator(
         root.getLocationOnScreen(loc)
         return Rect(loc[0], loc[1], loc[0] + root.width, loc[1] + root.height)
     }
+
+    override fun setUserHidden(hidden: Boolean) = Unit
 
     fun onGestureStart(rawY: Float) {
         arrow.animate().cancel()

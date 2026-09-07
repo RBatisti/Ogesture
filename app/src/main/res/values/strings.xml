@@ -47,6 +47,8 @@
     <string name="reliability_autostart_note">Also enable the \"Autostart\" permission for Ogesture in your phone\'s settings (on Xiaomi: Security app › Permissions › Autostart). Without it, the gesture service can be killed in the background.</string>
 
     <string name="gestures_title">Gestures supported</string>
+    <string name="hide_home_indicator_title">Hide home bar</string>
+    <string name="hide_home_indicator_subtitle">Keeps the swipe-up gesture working, just removes the visible mark at the bottom.</string>
     <string name="gesture_home_label">Home</string>
     <string name="gesture_home_desc">Swipe up from the bottom edge.</string>
     <string name="gesture_recents_label">Recents</string>

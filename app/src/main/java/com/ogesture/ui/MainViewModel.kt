@@ -37,4 +37,14 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
     fun setAppExcluded(packageName: String, excluded: Boolean) {
         viewModelScope.launch { repo.setAppExcluded(packageName, excluded) }
     }
+
+    val hideHomeIndicator: StateFlow<Boolean> = repo.hideHomeIndicator.stateIn(
+        scope = viewModelScope,
+        started = SharingStarted.WhileSubscribed(5_000L),
+        initialValue = false,
+    )
+
+    fun setHideHomeIndicator(hidden: Boolean) {
+        viewModelScope.launch { repo.setHideHomeIndicator(hidden) }
+    }
 }
