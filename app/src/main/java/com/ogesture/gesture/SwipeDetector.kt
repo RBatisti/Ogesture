@@ -18,6 +18,8 @@ class SwipeDetector(
     private val holdMs: Long = 100L,
     private val maxDurationMs: Long = 1000L,
     holdStillnessDp: Float = 12f,
+    /** Fixed retreat, from whatever point the finger reached, that un-arms the gesture. */
+    cancelRetreatDp: Float = 14f,
     private val feedback: Feedback? = null,
     /**
      * Called when a touch the zone consumed ends without firing any action (a tap, a
@@ -45,6 +47,7 @@ class SwipeDetector(
     private val density = context.resources.displayMetrics.density
     val minDistancePx = minDistanceDp * density
     private val holdStillnessPx = holdStillnessDp * density
+    private val cancelRetreatPx = cancelRetreatDp * density
 
     private var startX = 0f
     private var startY = 0f
@@ -54,6 +57,7 @@ class SwipeDetector(
     private var tracking = false
     private var thresholdCrossed = false
     private var longFired = false
+    private var peakDistancePx = 0f
     private var anchorView: View? = null
     private val samples = ArrayList<TouchSample>(64)
     private var replayable = false
@@ -65,6 +69,12 @@ class SwipeDetector(
         if (!tracking || !thresholdCrossed || longFired) return@Runnable
         longFired = true
         onLongSwipe?.invoke()
+    }
+
+    private fun distanceFor(rawX: Float, rawY: Float): Float = when (direction) {
+        SwipeDirection.UP -> startY - rawY
+        SwipeDirection.RIGHT -> rawX - startX
+        SwipeDirection.LEFT -> startX - rawX
     }
 
     override fun onTouch(v: View, event: MotionEvent): Boolean {
@@ -85,12 +95,9 @@ class SwipeDetector(
             MotionEvent.ACTION_MOVE -> {
                 addSample(event)
                 if (!tracking) return true
-                val distance = when (direction) {
-                    SwipeDirection.UP -> startY - event.rawY
-                    SwipeDirection.RIGHT -> event.rawX - startX
-                    SwipeDirection.LEFT -> startX - event.rawX
-                }
+                val distance = distanceFor(event.rawX, event.rawY)
                 feedback?.onProgress(distance, event.rawX, event.rawY)
+                if (distance > peakDistancePx) peakDistancePx = distance
                 if (!thresholdCrossed) {
                     if ((event.eventTime - startTime) > maxDurationMs) {
                         tracking = false
@@ -116,13 +123,22 @@ class SwipeDetector(
                         // armed state (and a long action can still take over).
                     }
                 } else if (!longFired) {
-                    val moved = abs(event.rawX - anchorX) > holdStillnessPx ||
-                        abs(event.rawY - anchorY) > holdStillnessPx
-                    if (moved && onLongSwipe != null) {
-                        anchorX = event.rawX
-                        anchorY = event.rawY
-                        v.removeCallbacks(longRunnable)
-                        v.postDelayed(longRunnable, holdMs)
+                    if (peakDistancePx - distance > cancelRetreatPx) {
+                        // Retreated a fixed amount back from wherever the finger got to —
+                        // independent of how deep the swipe went, unlike comparing against
+                        // the original start point (which effectively required dragging
+                        // almost all the way back to the edge after a long swipe).
+                        thresholdCrossed = false
+                        cancelPending()
+                    } else {
+                        val moved = abs(event.rawX - anchorX) > holdStillnessPx ||
+                                abs(event.rawY - anchorY) > holdStillnessPx
+                        if (moved && onLongSwipe != null) {
+                            anchorX = event.rawX
+                            anchorY = event.rawY
+                            v.removeCallbacks(longRunnable)
+                            v.postDelayed(longRunnable, holdMs)
+                        }
                     }
                 }
                 return true
@@ -136,7 +152,14 @@ class SwipeDetector(
             }
             MotionEvent.ACTION_UP -> {
                 addSample(event)
-                val crossed = thresholdCrossed
+                // Re-check retreat at the exact release point — a fast flick-back can lift
+                // the finger before any MOVE sample caught up to the cancel distance, even
+                // though the point where it actually left the screen already qualifies.
+                val releaseDistance = distanceFor(event.rawX, event.rawY)
+                if (releaseDistance > peakDistancePx) peakDistancePx = releaseDistance
+                val canceledAtRelease = thresholdCrossed && !longFired &&
+                        (peakDistancePx - releaseDistance > cancelRetreatPx)
+                val crossed = thresholdCrossed && !canceledAtRelease
                 val wasTracking = tracking
                 val didLong = longFired
                 cancelPending()
@@ -182,6 +205,7 @@ class SwipeDetector(
         cancelPending()
         thresholdCrossed = false
         longFired = false
+        peakDistancePx = 0f
         dropSamples()
     }
 
